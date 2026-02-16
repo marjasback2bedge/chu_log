@@ -1,0 +1,576 @@
+openapi: 3.0.3
+info:
+  title: Stupid Events Tracker API
+  description: |
+    朋友白癡事件記錄系統 API 規格
+    
+    此 API 使用 Supabase 作為後端服務，提供事件的 CRUD 操作、搜尋、即時更新等功能。
+    
+    ## 認證方式
+    使用 Supabase anon key 進行認證，透過 HTTP Header 傳遞。
+    
+    ## 基礎 URL
+    - Production: `https://your-project.supabase.co/rest/v1`
+    - 需要在每個請求的 Header 中帶入:
+      - `apikey`: Supabase anon key
+      - `Authorization`: `Bearer {anon_key}`
+  
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+  
+servers:
+  - url: https://your-project.supabase.co/rest/v1
+    description: Supabase REST API
+  - url: wss://your-project.supabase.co/realtime/v1
+    description: Supabase Realtime (WebSocket)
+
+tags:
+  - name: events
+    description: 白癡事件相關操作
+  - name: stats
+    description: 統計資料
+  - name: realtime
+    description: 即時更新
+
+paths:
+  /stupid_events:
+    get:
+      tags:
+        - events
+      summary: 取得事件列表
+      description: 取得所有白癡事件，支援分頁、排序、篩選
+      operationId: getEvents
+      
+      parameters:
+        - name: select
+          in: query
+          description: 選擇要返回的欄位
+          schema:
+            type: string
+            default: "*"
+            example: "id,person_name,event_description,likes"
+        
+        - name: order
+          in: query
+          description: 排序方式
+          schema:
+            type: string
+            default: "created_at.desc"
+            example: "created_at.desc"
+        
+        - name: limit
+          in: query
+          description: 限制返回數量
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 1000
+        
+        - name: offset
+          in: query
+          description: 分頁偏移量
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        
+        - name: person_name
+          in: query
+          description: 按當事人姓名篩選（模糊搜尋）
+          schema:
+            type: string
+            example: "小明"
+        
+        - name: event_date
+          in: query
+          description: 按事件日期篩選（格式: gte.2026-01-01）
+          schema:
+            type: string
+            example: "gte.2026-01-01"
+        
+        - name: tags
+          in: query
+          description: 按標籤篩選（格式: cs.{tag1,tag2}）
+          schema:
+            type: string
+            example: "cs.{飲食,智商感人}"
+      
+      responses:
+        '200':
+          description: 成功取得事件列表
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+              examples:
+                default:
+                  value:
+                    - id: "123e4567-e89b-12d3-a456-426614174000"
+                      person_name: "小明"
+                      event_description: "把醬油當成可樂喝了一大口"
+                      event_date: "2026-02-15"
+                      recorder_name: "小華"
+                      tags: ["飲食", "智商感人"]
+                      likes: 42
+                      created_at: "2026-02-16T10:30:00.000Z"
+                      updated_at: "2026-02-16T10:30:00.000Z"
+        
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    
+    post:
+      tags:
+        - events
+      summary: 新增事件
+      description: 新增一筆白癡事件記錄
+      operationId: createEvent
+      
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventCreate'
+            examples:
+              default:
+                value:
+                  person_name: "小明"
+                  event_description: "把醬油當成可樂喝了一大口"
+                  event_date: "2026-02-15"
+                  recorder_name: "小華"
+                  tags: ["飲食", "智商感人"]
+      
+      responses:
+        '201':
+          description: 成功新增事件
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+        
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /stupid_events/{id}:
+    get:
+      tags:
+        - events
+      summary: 取得單一事件
+      description: 根據 ID 取得特定事件的詳細資訊
+      operationId: getEventById
+      
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 事件 UUID
+          schema:
+            type: string
+            format: uuid
+      
+      responses:
+        '200':
+          description: 成功取得事件
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+        
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    patch:
+      tags:
+        - events
+      summary: 更新事件
+      description: 更新事件資訊（目前僅支援更新 likes）
+      operationId: updateEvent
+      
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 事件 UUID
+          schema:
+            type: string
+            format: uuid
+      
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventUpdate'
+      
+      responses:
+        '200':
+          description: 成功更新事件
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+        
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    delete:
+      tags:
+        - events
+      summary: 刪除事件
+      description: 刪除特定事件（可選功能）
+      operationId: deleteEvent
+      
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 事件 UUID
+          schema:
+            type: string
+            format: uuid
+      
+      responses:
+        '204':
+          description: 成功刪除事件
+        
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /rpc/increment_likes:
+    post:
+      tags:
+        - events
+      summary: 增加點讚數
+      description: 對特定事件增加一個讚
+      operationId: incrementLikes
+      
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - event_id
+              properties:
+                event_id:
+                  type: string
+                  format: uuid
+                  description: 事件 UUID
+            example:
+              event_id: "123e4567-e89b-12d3-a456-426614174000"
+      
+      responses:
+        '204':
+          description: 成功增加點讚
+        
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /rpc/get_event_stats:
+    post:
+      tags:
+        - stats
+      summary: 取得統計資料
+      description: 取得事件統計資訊，例如誰最常出現、最多讚的事件等
+      operationId: getEventStats
+      
+      responses:
+        '200':
+          description: 成功取得統計資料
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Stats'
+              example:
+                - person_name: "小明"
+                  event_count: 15
+                  total_likes: 230
+                - person_name: "小華"
+                  event_count: 12
+                  total_likes: 180
+
+components:
+  schemas:
+    Event:
+      type: object
+      required:
+        - id
+        - person_name
+        - event_description
+        - event_date
+        - recorder_name
+        - likes
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 事件唯一識別碼
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        
+        person_name:
+          type: string
+          description: 當事人姓名
+          minLength: 1
+          maxLength: 50
+          example: "小明"
+        
+        event_description:
+          type: string
+          description: 事件描述
+          minLength: 1
+          maxLength: 1000
+          example: "把醬油當成可樂喝了一大口"
+        
+        event_date:
+          type: string
+          format: date
+          description: 事件發生日期
+          example: "2026-02-15"
+        
+        recorder_name:
+          type: string
+          description: 記錄者姓名
+          minLength: 1
+          maxLength: 50
+          example: "小華"
+        
+        tags:
+          type: array
+          description: 事件標籤
+          items:
+            type: string
+          example: ["飲食", "智商感人"]
+        
+        likes:
+          type: integer
+          description: 點讚數
+          minimum: 0
+          default: 0
+          example: 42
+        
+        created_at:
+          type: string
+          format: date-time
+          description: 建立時間
+          example: "2026-02-16T10:30:00.000Z"
+        
+        updated_at:
+          type: string
+          format: date-time
+          description: 更新時間
+          example: "2026-02-16T10:30:00.000Z"
+    
+    EventCreate:
+      type: object
+      required:
+        - person_name
+        - event_description
+        - event_date
+        - recorder_name
+      properties:
+        person_name:
+          type: string
+          description: 當事人姓名
+          minLength: 1
+          maxLength: 50
+          example: "小明"
+        
+        event_description:
+          type: string
+          description: 事件描述
+          minLength: 1
+          maxLength: 1000
+          example: "把醬油當成可樂喝了一大口"
+        
+        event_date:
+          type: string
+          format: date
+          description: 事件發生日期
+          example: "2026-02-15"
+        
+        recorder_name:
+          type: string
+          description: 記錄者姓名
+          minLength: 1
+          maxLength: 50
+          example: "小華"
+        
+        tags:
+          type: array
+          description: 事件標籤
+          items:
+            type: string
+          example: ["飲食", "智商感人"]
+    
+    EventUpdate:
+      type: object
+      properties:
+        likes:
+          type: integer
+          description: 更新點讚數
+          minimum: 0
+          example: 43
+    
+    Stats:
+      type: object
+      properties:
+        person_name:
+          type: string
+          description: 當事人姓名
+          example: "小明"
+        
+        event_count:
+          type: integer
+          description: 事件總數
+          example: 15
+        
+        total_likes:
+          type: integer
+          description: 獲得的總讚數
+          example: 230
+    
+    Error:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: 錯誤訊息
+          example: "Invalid request parameters"
+        
+        code:
+          type: string
+          description: 錯誤代碼
+          example: "INVALID_PARAMS"
+        
+        details:
+          type: string
+          description: 詳細錯誤資訊
+          example: "person_name is required"
+  
+  responses:
+    BadRequest:
+      description: 請求參數錯誤
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: "Invalid request parameters"
+            code: "INVALID_PARAMS"
+    
+    Unauthorized:
+      description: 未授權或認證失敗
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: "Invalid API key"
+            code: "UNAUTHORIZED"
+    
+    NotFound:
+      description: 找不到指定的資源
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            message: "Event not found"
+            code: "NOT_FOUND"
+  
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: apikey
+      description: Supabase anon key
+    
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase JWT token (same as anon key for public access)
+
+security:
+  - ApiKeyAuth: []
+  - BearerAuth: []
+
+# Supabase Realtime API (WebSocket)
+# 注意: OpenAPI 3.0 不支援 WebSocket，以下為概念性說明
+
+x-realtime:
+  description: |
+    Supabase Realtime API 使用 WebSocket 協議
+    
+    ## 連線 URL
+    wss://your-project.supabase.co/realtime/v1/websocket
+    
+    ## 連線參數
+    - apikey: Supabase anon key
+    - vsn: 1.0.0
+    
+    ## 訂閱事件
+    ```javascript
+    const channel = supabase
+      .channel('stupid_events_changes')
+      .on('postgres_changes', 
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'stupid_events' 
+        }, 
+        (payload) => {
+          console.log('新事件:', payload.new);
+        }
+      )
+      .subscribe();
+    ```
+    
+    ## 支援的事件類型
+    - INSERT: 新增事件時觸發
+    - UPDATE: 更新事件時觸發
+    - DELETE: 刪除事件時觸發
+    
+    ## Payload 格式
+    ```json
+    {
+      "schema": "public",
+      "table": "stupid_events",
+      "commit_timestamp": "2026-02-16T10:30:00.000Z",
+      "eventType": "INSERT",
+      "new": {
+        "id": "uuid",
+        "person_name": "小明",
+        "event_description": "...",
+        ...
+      },
+      "old": {}
+    }
+    ```
