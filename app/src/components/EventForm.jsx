@@ -7,6 +7,7 @@ export default function EventForm({ onSubmit, onCancel }) {
     event_description: '',
     event_date: new Date().toISOString().split('T')[0],
     recorder_name: '',
+    source_link: '',
     tags: []
   })
   const [tagInput, setTagInput] = useState('')
@@ -85,6 +86,17 @@ export default function EventForm({ onSubmit, onCancel }) {
       </div>
 
       <div className="mb-4">
+        <label className="block text-sm font-medium mb-2">資料來源 (可選)</label>
+        <input
+          type="text"
+          value={formData.source_link}
+          onChange={(e) => setFormData({ ...formData, source_link: e.target.value })}
+          className="w-full px-4 py-2.5 border-2 border-orange-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
+          placeholder="Discord 訊息連結"
+        />
+      </div>
+
+      <div className="mb-4">
         <label className="block text-sm font-medium mb-2">發生日期 *</label>
         <input
           type="date"
@@ -147,7 +159,7 @@ export default function EventForm({ onSubmit, onCancel }) {
           disabled={submitting}
           className="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-all hover:scale-[1.02] hover:shadow-lg shadow-md"
         >
-          {submitting ? '送出中...' : '✨ 送出記錄'}
+          {submitting ? '送出中...' : '送出記錄'}
         </button>
         <button
           type="button"
