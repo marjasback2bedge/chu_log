@@ -32,3 +32,6 @@ Thumbs.db
 
 # Misc
 .cache/
+
+# MCP Configuration (contains sensitive data)
+.mcp.json
