@@ -11,7 +11,14 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [darkMode, setDarkMode] = useState(false)
+  const [darkMode, setDarkMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('darkMode')
+      return saved === 'true'
+    } catch {
+      return false
+    }
+  })
 
   useEffect(() => {
     fetchEvents()
@@ -87,6 +94,16 @@ function App() {
     }
   }
 
+  const handleDarkModeToggle = () => {
+    const newDarkMode = !darkMode
+    setDarkMode(newDarkMode)
+    try {
+      localStorage.setItem('darkMode', String(newDarkMode))
+    } catch {
+      // Gracefully ignore localStorage errors (e.g., private browsing)
+    }
+  }
+
   const handleLike = async (eventId) => {
     const { error } = await supabase
       .rpc('increment_likes', { event_id: eventId })
@@ -110,7 +127,7 @@ function App() {
               </h1>
             </div>
             <button
-              onClick={() => setDarkMode(!darkMode)}
+              onClick={handleDarkModeToggle}
               className="p-2.5 rounded-xl bg-orange-100 dark:bg-gray-700 hover:bg-orange-200 dark:hover:bg-gray-600 transition-all hover:scale-105"
             >
               {darkMode ? <Sun className="w-5 h-5 text-orange-400" /> : <Moon className="w-5 h-5 text-orange-500" />}
