@@ -7,9 +7,22 @@ export default function EventCard({ event, onLike }) {
     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-orange-100 dark:border-gray-700 p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 animate-fade-in">
       <div className="flex justify-between items-start mb-4">
         <div>
-          <h3 className="text-xl font-bold text-gradient-warm">
-            {event.event_title}
-          </h3>
+          {event.source_link ? (
+            <h3 className="text-xl font-bold">
+              <a
+                href={event.source_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gradient-warm hover:underline"
+              >
+                {event.event_title}
+              </a>
+            </h3>
+          ) : (
+            <h3 className="text-xl font-bold text-gradient-warm">
+              {event.event_title}
+            </h3>
+          )}
           <p className="text-sm text-gray-500 dark:text-gray-400">
             ✍️ {event.recorder_name}
           </p>

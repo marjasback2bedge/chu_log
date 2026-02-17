@@ -10,6 +10,7 @@ CREATE TABLE stupid_events (
   event_description text NOT NULL CHECK (char_length(event_description) <= 1000),
   event_date date NOT NULL,
   recorder_name text NOT NULL CHECK (char_length(recorder_name) <= 50),
+  source_link text,
   tags text[] DEFAULT '{}',
   likes integer DEFAULT 0 CHECK (likes >= 0),
   created_at timestamptz DEFAULT now(),
